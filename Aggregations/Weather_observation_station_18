@@ -1,0 +1,13 @@
+WITH POINTS AS(
+    SELECT
+        MIN(LAT_N) as a,
+        MIN(LONG_W) as b,
+        MAX(LAT_N) as c,
+        MAX(LONG_W) as d
+    FROM
+        STATION
+)
+SELECT
+    ROUND(ABS(a - c) + ABS(b - d), 4)
+FROM
+    POINTS

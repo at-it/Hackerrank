@@ -1,0 +1,32 @@
+WITH ordered AS (
+    SELECT
+        LAT_N,
+        ROW_NUMBER() OVER(
+            ORDER BY
+                LAT_N ASC
+        ) - 1 AS row_n
+    FROM
+        STATION
+),
+median_elements AS(
+    SELECT
+        FLOOR(MAX(row_n) / 2)
+    FROM
+        ordered
+    UNION
+    SELECT
+        CEIL(MAX(row_n) / 2)
+    FROM
+        ordered
+)
+SELECT
+    ROUND(AVG(LAT_N), 4)
+FROM
+    ordered
+WHERE
+    row_n IN (
+        SELECT
+            *
+        FROM
+            median_elements
+    )

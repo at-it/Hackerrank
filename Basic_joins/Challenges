@@ -1,0 +1,45 @@
+WITH base AS (
+    SELECT
+        h.hacker_id,
+        h.name
+    FROM
+        hackers as h
+    GROUP BY
+        h.hacker_id,
+        h.name
+),
+challenges_per_hacker AS (
+    SELECT
+        hacker_id,
+        COUNT(challenge_id) as no_of_challenges
+    FROM
+        challenges
+    GROUP BY
+        hacker_id
+)
+SELECT
+    t.hacker_id,
+    t.name,
+    t.no_of_challenges
+FROM
+(
+        SELECT
+            b.hacker_id,
+            b.name,
+            cph.no_of_challenges,
+            COUNT(b.hacker_id) OVER (PARTITION BY cph.no_of_challenges) as counter
+        FROM
+            base as b
+            INNER JOIN challenges_per_hacker as cph ON b.hacker_id = cph.hacker_id
+    ) as t
+WHERE
+    t.no_of_challenges >= (
+        SELECT
+            MAX(no_of_challenges)
+        FROM
+            challenges_per_hacker
+    )
+    OR t.counter = 1
+ORDER BY
+    t.no_of_challenges DESC,
+    t.hacker_id ASC

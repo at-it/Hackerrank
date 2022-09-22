@@ -1,0 +1,13 @@
+WITH POINTS AS (
+    SELECT
+        MIN(LAT_N) as a,
+        MAX(LAT_N) as b,
+        MIN(LONG_W) as c,
+        MAX(LONG_W) as d
+    FROM
+        STATION
+)
+SELECT
+    TRUNCATE(SQRT(POWER(a - b, 2) + POWER(c - d, 2)), 4)
+FROM
+    POINTS

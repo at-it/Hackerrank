@@ -1,0 +1,28 @@
+SELECT
+    CONCAT(NAME, "(", LEFT(OCCUPATION, 1), ")")
+FROM
+    OCCUPATIONS
+ORDER BY
+    NAME ASC;
+
+SELECT
+    CONCAT(
+        "There are a total of ",
+        counter,
+        " ",
+        LOWER(OCCUPATION),
+        "s."
+    )
+FROM
+    (
+        SELECT
+            OCCUPATION,
+            COUNT(OCCUPATION) as counter
+        FROM
+            OCCUPATIONS as t
+        GROUP BY
+            OCCUPATION
+        ORDER BY
+            counter ASC,
+            OCCUPATION ASC
+    ) as s;

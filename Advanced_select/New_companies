@@ -1,0 +1,47 @@
+SELECT
+    c.company_code,
+    c.founder,
+    clm,
+    csm,
+    cm,
+    ce
+FROM
+    COMPANY as c
+    LEFT JOIN (
+        SELECT
+            company_code,
+            COUNT(DISTINCT(lead_manager_code)) as clm
+        FROM
+            Lead_Manager
+        GROUP BY
+            company_code
+    ) as lm ON c.company_code = lm.company_code
+    LEFT JOIN (
+        SELECT
+            company_code,
+            COUNT(DISTINCT(senior_manager_code)) as csm
+        FROM
+            senior_manager
+        GROUP BY
+            company_code
+    ) as sm ON c.company_code = sm.company_code
+    LEFT JOIN(
+        SELECT
+            company_code,
+            COUNT(DISTINCT(manager_code)) as cm
+        FROM
+            Manager
+        GROUP BY
+            company_code
+    ) as m ON c.company_code = m.company_code
+    LEFT JOIN(
+        SELECT
+            company_code,
+            COUNT(DISTINCT(employee_code)) as ce
+        FROM
+            Employee
+        GROUP BY
+            company_code
+    ) as e ON c.company_code = e.company_code
+ORDER BY
+    company_code ASC;

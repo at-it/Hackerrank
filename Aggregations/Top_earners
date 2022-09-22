@@ -1,0 +1,13 @@
+SELECT
+    MAX(annual),
+    MAX(counter)
+FROM
+    (
+        SELECT
+            months * salary as annual,
+            COUNT(employee_id) as counter
+        FROM
+            Employee
+        GROUP BY
+            annual
+    ) as main

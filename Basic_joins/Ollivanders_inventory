@@ -1,0 +1,38 @@
+SELECT
+    f.id,
+    f.age,
+    f.coins_needed,
+    f.power
+FROM
+(
+        SELECT
+            w2.id,
+            wp2.age,
+            w2.coins_needed,
+            w2.power
+        FROM
+            wands as w2
+            INNER JOIN wands_property as wp2 ON w2.code = wp2.code
+        WHERE
+            wp2.is_evil = 0
+    ) as f
+    LEFT JOIN(
+        SELECT
+            wp.age,
+            w.power,
+            MIN(coins_needed) as min_coins
+        FROM
+            wands as w
+            INNER JOIN wands_property as wp ON w.code = wp.code
+        WHERE
+            wp.is_evil = 0
+        GROUP BY
+            wp.age,
+            w.power
+    ) as sub ON f.age = sub.age
+    AND f.power = sub.power
+WHERE
+    f.coins_needed = sub.min_coins
+ORDER BY
+    f.power DESC,
+    f.age DESC

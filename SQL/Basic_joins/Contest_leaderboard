@@ -1,0 +1,32 @@
+WITH best_sub AS (
+    SELECT
+        hacker_id,
+        challenge_id,
+        MAX(score) as score
+    FROM
+        submissions
+    GROUP BY
+        hacker_id,
+        challenge_id
+),
+sum_score AS(
+    SELECT
+        bs.hacker_id,
+        h.name,
+        SUM(bs.score) as total_score
+    FROM
+        best_sub as bs
+        INNER JOIN hackers as h ON bs.hacker_id = h.hacker_id
+    GROUP BY
+        bs.hacker_id,
+        h.name
+    HAVING
+        SUM(bs.score) > 0
+)
+SELECT
+    *
+FROM
+    sum_score
+ORDER BY
+    total_score DESC,
+    hacker_id ASC

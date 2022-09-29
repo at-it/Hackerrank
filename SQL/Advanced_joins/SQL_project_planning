@@ -1,71 +1,116 @@
-
 -- MySQL version
+SET
+    @i := 1;
 
-SET @i := 1;
-
-SELECT MIN(Start_Date), MAX(End_Date)
-FROM(
-    SELECT Task_ID, Start_Date, End_Date, lag_1_end_date, 
-            CASE WHEN lag_1_end_date = Start_Date OR lag_1_end_date IS NULL
-                 THEN @i
-                 ELSE @i := @i + 1
+SELECT
+    MIN(Start_Date),
+    MAX(End_Date)
+FROM
+(
+        SELECT
+            Task_ID,
+            Start_Date,
+            End_Date,
+            lag_1_end_date,
+            CASE
+                WHEN lag_1_end_date = Start_Date
+                OR lag_1_end_date IS NULL THEN @i
+                ELSE @i := @i + 1
             END AS project_id
-    FROM (SELECT Task_ID, Start_Date, End_Date, LAG(End_Date, 1) OVER(ORDER BY Start_Date ASC) as lag_1_end_date
-        FROM Projects) as sub
-    ORDER BY Start_Date ASC) as f
-GROUP BY project_id
+        FROM
+            (
+                SELECT
+                    Task_ID,
+                    Start_Date,
+                    End_Date,
+                    LAG(End_Date, 1) OVER(
+                        ORDER BY
+                            Start_Date ASC
+                    ) as lag_1_end_date
+                FROM
+                    Projects
+            ) as sub
+        ORDER BY
+            Start_Date ASC
+    ) as f
+GROUP BY
+    project_id -- MS SQL version, more standard in case incrementation clause does not work
+    -- Creation of the table with lagged end_date
+    WITH cte1 AS(
+        SELECT
+            *,
+            LAG(End_Date, 1) OVER(
+                ORDER BY
+                    Start_Date ASC
+            ) AS end_date_offset_1
+        FROM
+            Projects
+    ) -- adding row number and flag that shows if the consecutive step is part of the same project
+SELECT
+    *,
+    CASE
+        WHEN end_date_offset_1 = Start_Date
+        OR end_date_offset_1 IS NULL THEN 1
+        ELSE 0
+    END as check_column,
+    ROW_NUMBER() OVER(
+        ORDER BY
+            Start_Date ASC
+    ) as rn,
+    -1 as project_id INTO intermidiate_table
+FROM
+    cte1
+ORDER BY
+    Start_Date ASC -- Step of putting into the table the project id 
+    DECLARE @i AS INT DECLARE @project_no as INT
+SET
+    @i = 1;
 
--- MS SQL version, more standard in case incrementation clause does not work
+SET
+    @project_no = 1;
 
--- Creation of the table with lagged end_date
-WITH cte1 AS(
-    SELECT *, LAG(End_Date, 1) OVER(ORDER BY Start_Date ASC) AS end_date_offset_1
-    FROM Projects
-)
-
--- adding row number and flag that shows if the consecutive step is part of the same project
-SELECT 
-        *, 
-        CASE WHEN end_date_offset_1 = Start_Date OR end_date_offset_1 IS NULL
-             THEN 1 
-             ELSE 0 
-        END as check_column,
-        ROW_NUMBER() OVER(ORDER BY Start_Date ASC) as rn,
-        -1 as project_id
-INTO intermidiate_table
-FROM cte1
-ORDER BY Start_Date ASC
-
--- Step of putting into the table the project id 
-DECLARE @i AS INT
-DECLARE @project_no as INT
-SET @i = 1;
-SET @project_no = 1;
-
-WHILE @i <= (SELECT MAX(rn) FROM intermidiate_table)
-    BEGIN
-        IF (SELECT check_column FROM intermidiate_table WHERE @i = rn) = 0
-            SET @project_no = @project_no + 1
-        
-        UPDATE intermidiate_table
-        SET project_id = @project_no
-        WHERE @i = rn
-        
-        SET @i = @i + 1
-    END
-
--- adding the project duration into table
-SELECT MIN(Start_Date) as project_start_date, MAX(End_Date) as project_end_date, project_id
-INTO intermidiate_table2
-FROM intermidiate_table
-GROUP BY project_id
-
-SELECT *, DATEDIFF(day, project_start_date, project_end_date) as project_duration
-INTO final_table
-FROM intermidiate_table2
-
-SELECT project_start_date, project_end_date
-FROM final_table
-ORDER BY project_duration ASC, project_start_date ASC
-
-
+WHILE @i <= (
+    SELECT
+        MAX(rn)
+    FROM
+        intermidiate_table
+) BEGIN IF (
+    SELECT
+        check_column
+    FROM
+        intermidiate_table
+    WHERE
+        @i = rn
+) = 0
+SET
+    @project_no = @project_no + 1
+UPDATE
+    intermidiate_table
+SET
+    project_id = @project_no
+WHERE
+    @i = rn
+SET
+    @i = @i + 1
+END -- adding the project duration into table
+SELECT
+    MIN(Start_Date) as project_start_date,
+    MAX(End_Date) as project_end_date,
+    project_id INTO intermidiate_table2
+FROM
+    intermidiate_table
+GROUP BY
+    project_id
+SELECT
+    *,
+    DATEDIFF(day, project_start_date, project_end_date) as project_duration INTO final_table
+FROM
+    intermidiate_table2
+SELECT
+    project_start_date,
+    project_end_date
+FROM
+    final_table
+ORDER BY
+    project_duration ASC,
+    project_start_date ASC

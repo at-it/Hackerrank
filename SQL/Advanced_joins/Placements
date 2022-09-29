@@ -1,0 +1,30 @@
+WITH friends_packages AS (
+    SELECT
+        f.ID,
+        f.Friend_ID,
+        p.Salary AS ID_salary,
+        p2.Salary AS ID_Friend_Salary
+    FROM
+        Friends as f
+        INNER JOIN Packages as p ON f.ID = p.ID
+        INNER JOIN Packages as p2 ON f.Friend_ID = p2.ID
+),
+final_table AS (
+    SELECT
+        fp.ID,
+        fp.Friend_ID,
+        fp.ID_Salary,
+        fp.ID_Friend_Salary,
+        s.Name
+    FROM
+        friends_packages as fp
+        INNER JOIN Students as s ON fp.ID = s.ID
+)
+SELECT
+    Name
+FROM
+    final_table
+WHERE
+    ID_salary < ID_Friend_Salary
+ORDER BY
+    ID_Friend_Salary ASC

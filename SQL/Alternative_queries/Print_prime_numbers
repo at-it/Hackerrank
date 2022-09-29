@@ -1,0 +1,40 @@
+DECLARE @i AS INT
+SET
+    @i = 2;
+
+--- 1 is not a prime number by definition
+DECLARE @temp AS INT
+SET
+    @temp = 2;
+
+DECLARE @primes TABLE (prime INT) DECLARE @flag as INT
+SET
+    @flag = 1;
+
+--- by default any number can be divided by 1
+WHILE @i < 1000 BEGIN
+SET
+    @temp = 2;
+
+SET
+    @flag = 1;
+
+WHILE @temp <= @i BEGIN IF @i % @temp = 0
+SET
+    @flag = @flag + 1 IF @flag > 2 BREAK;
+
+IF @i = @temp
+INSERT INTO
+    @primes (prime)
+VALUES
+    (@i)
+SET
+    @temp = @temp + 1
+END
+SET
+    @i = @i + 1
+END
+SELECT
+    STRING_AGG(prime, '&')
+FROM
+    @primes

@@ -1,0 +1,119 @@
+--- first we need to declare what hackers have been submitting consecutively and are still in the game for each date
+DECLARE @hackers_consecutive_postings TABLE (hacker_id INT, submission_date DATE);
+
+DECLARE @starting_challenge_date AS DATE
+SET
+    @starting_challenge_date = '2016-03-01';
+
+DECLARE @final_challenge_date AS DATE
+SET
+    @final_challenge_date = '2016-03-15';
+
+DECLARE @date as DATE
+SET
+    @date = @starting_challenge_date;
+
+DECLARE @previous_date as DATE
+SET
+    @previous_date = @starting_challenge_date;
+
+--- we start with all the users that submitted on the first date, in the next days the number of users should be dropping as not all of them will submit each day.
+INSERT INTO
+    @hackers_consecutive_postings
+SELECT
+    hacker_id,
+    submission_date
+FROM
+    submissions
+WHERE
+    submission_date = @starting_challenge_date;
+
+WHILE @date < @final_challenge_date BEGIN
+SET
+    @date = DATEADD(day, 1, @date);
+
+INSERT INTO
+    @hackers_consecutive_postings
+SELECT
+    s.hacker_id,
+    s.submission_date
+FROM
+    Submissions as s
+    INNER JOIN @hackers_consecutive_postings as hcp ON s.hacker_id = hcp.hacker_id
+    AND hcp.submission_date = @previous_date
+WHERE
+    s.submission_date = @date
+SET
+    @previous_date = DATEADD(day, 1, @previous_date);
+
+END;
+
+--- we move on to getting the rest of the query as we have the consecutive hackers sorted out
+WITH --- cte_1 counts number of distinct hackers per date
+cte_1 AS (
+    SELECT
+        submission_date,
+        COUNT(DISTINCT(hacker_id)) as no_of_hackers
+    FROM
+        @hackers_consecutive_postings
+    GROUP BY
+        submission_date
+),
+--- cte_2 count number of hackers' submissions per date
+cte_2 AS (
+    SELECT
+        submission_date,
+        hacker_id,
+        COUNT(submission_id) as sub_count
+    FROM
+        submissions
+    GROUP BY
+        submission_date,
+        hacker_id
+),
+--- cte_3 ranks the number of submissions
+cte_3 AS (
+    SELECT
+        submission_date,
+        hacker_id,
+        sub_count,
+        DENSE_RANK() OVER(
+            PARTITION BY submission_date
+            ORDER BY
+                sub_count DESC
+        ) as rank
+    FROM
+        cte_2
+),
+--- cte_4 picks up lowest hacker id in case of ties
+cte_4 AS (
+    SELECT
+        submission_date,
+        MIN(hacker_id) as lowest_hacker_id
+    FROM
+        cte_3
+    WHERE
+        rank = 1
+    GROUP BY
+        submission_date
+),
+--- adding name from Hackers table
+cte_5 AS (
+    SELECT
+        c.submission_date,
+        c.lowest_hacker_id,
+        h.name
+    FROM
+        cte_4 as c
+        INNER JOIN Hackers as h ON c.lowest_hacker_id = h.hacker_id
+)
+SELECT
+    c1.submission_date,
+    c1.no_of_hackers,
+    c5.lowest_hacker_id,
+    c5.name
+FROM
+    cte_1 as c1
+    INNER JOIN cte_5 as c5 ON c1.submission_date = c5.submission_date
+ORDER BY
+    c1.submission_date ASC

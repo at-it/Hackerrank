@@ -1,0 +1,60 @@
+-- MS SQL solution
+-- INNER JOIN on row number acts like counter to filter out the lines that are not having equivalent pair
+WITH base AS (
+    SELECT
+        X,
+        Y,
+        ROW_NUMBER() OVER (
+            ORDER BY
+                X
+        ) as rn
+    FROM
+        Functions as f
+),
+final AS(
+    SELECT
+        b.X AS X_1,
+        b.Y AS Y_1,
+        b2.X AS X_2,
+        b2.Y AS Y_2,
+        b.rn,
+        b2.rn as rn2
+    FROM
+        base as bs
+        INNER JOIN base as b2 ON b.X = b2.Y
+        AND b.Y = b2.X
+        AND b.rn != b2.rn
+    WHERE
+        b.X <= b.Y
+)
+SELECT
+    DISTINCT(X_1),
+    Y_1
+FROM
+    final
+ORDER BY
+    X_1 ASC -- Alternative solution
+    WITH cleaned_up AS(
+        SELECT
+            CASE
+                WHEN X <= Y THEN X
+                ELSE Y
+            END AS X,
+            CASE
+                WHEN Y > X THEN Y
+                ELSE X
+            END AS Y
+        FROM
+            Functions
+    )
+SELECT
+    *
+FROM
+    cleaned_up
+GROUP BY
+    X,
+    Y
+HAVING
+    COUNT(*) >= 2
+ORDER BY
+    X ASC

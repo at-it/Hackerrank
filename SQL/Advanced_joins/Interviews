@@ -1,0 +1,38 @@
+WITH 
+numeric_data AS (
+    SELECT challenge_id, SUM(total_submissions) as total_subs, SUM(total_accepted_submissions) as total_accepted_subs
+    FROM Submission_Stats
+    GROUP BY challenge_id
+),
+numeric_data_2 AS(
+    SELECT challenge_id, SUM(total_views) as total_views, SUM(total_unique_views) as total_unique_views
+    FROM View_Stats
+    GROUP BY challenge_id
+),
+final_numeric AS(
+    SELECT c.challenge_id, nd.total_subs, nd.total_accepted_subs, nd2.total_views, nd2.total_unique_views
+    FROM Challenges as c
+    LEFT JOIN numeric_data as nd
+    ON c.challenge_id = nd.challenge_id
+    LEFT JOIN numeric_data_2 as nd2
+    ON c.challenge_id = nd2.challenge_id
+),
+fact_base AS (
+    SELECT c.contest_id, c.hacker_id, c.name, c2.college_id, c3.challenge_id
+    FROM Contests as c
+    INNER JOIN Colleges as c2
+    ON c.contest_id = c2.contest_id
+    INNER JOIN Challenges as c3
+    ON c2.college_id = c3.college_id 
+),
+final AS (
+    SELECT fb.contest_id, fb.hacker_id, fb.name, SUM(fn.total_subs) as total_subs, SUM(fn.total_accepted_subs) as total_accepted_subs, SUM(fn.total_views) as total_views, SUM(fn.total_unique_views) as total_unique_views
+    FROM fact_base as fb
+    LEFT JOIN final_numeric as fn
+    ON fb.challenge_id = fn.challenge_id
+    GROUP BY fb.contest_id, fb.hacker_id, fb.name
+)
+
+SELECT contest_id, hacker_id, name, total_subs, total_accepted_subs, total_views, total_unique_views
+FROM final
+ORDER BY contest_id ASC
